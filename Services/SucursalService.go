@@ -25,7 +25,7 @@ type SucursalService struct {
 	collection *mongo.Collection
 }
 
-func NewEntidadService(collection *mongo.Collection) *SucursalService {
+func NewSucursalService(collection *mongo.Collection) *SucursalService {
 	return &SucursalService{
 		collection: collection,
 	}

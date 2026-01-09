@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
-	Service "examen_final_febrero_golang_P1/Services"
-	"examen_final_febrero_golang_P1/handlers"
-	"examen_final_febrero_golang_P1/middlewares"
+	"log"
+
+	service "examen_final_febrero_golang_P1/Services"
+	handlers "examen_final_febrero_golang_P1/handlers"
+	middlewares "examen_final_febrero_golang_P1/middlewares"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,22 +15,31 @@ import (
 
 func main() {
 	r := gin.Default()
-	r.Use(middlewares.AuthMiddleware())
-	// Mongo directo
-	client, err := mongo.Connect(context.TODO(),
-		options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	// Conexión MongoDB
+	client, err := mongo.Connect(
+		context.TODO(),
+		options.Client().ApplyURI("mongodb://localhost:27017"),
+	)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+	defer client.Disconnect(context.TODO())
 
 	collection := client.Database("examen").Collection("entidades")
-	entidadService := Service.NewEntidadService(collection)
 
-	handler := handlers.NewSucursalHandler(*entidadService)
+	// Inyección de dependencias
+	sucursalService := service.NewSucursalService(collection)
+	handler := handlers.NewSucursalHandler(*sucursalService)
 
-	r.POST("/entidad", handler.Crear)
-	r.GET("/entidad", handler.Listar)
-	r.GET("/", handler.Calculos)
-	r.GET("/proyeccion", handler.ObtenerTablaProyeccion)
+	// Rutas
+	api := r.Group("/entidad")
+	api.Use(middlewares.AuthMiddleware())
+
+	api.POST("", handler.Crear)
+	api.GET("", handler.Listar)
+	api.GET("/calculos", handler.Calculos)
+	api.GET("/proyeccion", handler.ObtenerTablaProyeccion)
+
 	r.Run(":8080")
 }
